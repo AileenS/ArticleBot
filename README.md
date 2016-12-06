@@ -1,2 +1,2 @@
 # ArticleBot
-To Discuss a Bayesian Feed Filter for Caselaw
+A Bayesian Feed Filter for Caselaw
