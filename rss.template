@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+
+<channel>
+  <title>Legal Hackers Toronto</title>
+  <link>http://legalhackerarticlebot.appspot.com/</link>
+  <description>A Bayes Bot to track Legal Articles</description>
+  {% for aPost in Posts %}
+  <item>
+    <title>{{aPost.Title}}</title>
+    <link>http://legalhackerarticlebot.appspot.com/VoteData?Key={{aPost.Key}}</link>
+    <description>{{aPost.Scan}}</description>
+  </item>
+  {% endfor %}
+</channel>
+
+</rss>
