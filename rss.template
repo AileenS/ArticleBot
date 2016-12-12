@@ -3,12 +3,12 @@
 
 <channel>
   <title>Legal Hackers Toronto</title>
-  <link>http://legalhackerarticlebot.appspot.com/</link>
+  <link>{{base_url}}</link>
   <description>A Bayes Bot to track Legal Articles</description>
   {% for aPost in Posts %}
   <item>
     <title>{{aPost.Title}}</title>
-    <link>http://legalhackerarticlebot.appspot.com/VoteData?Key={{aPost.Key}}</link>
+    <link>{{base_url}}/VoteData?Key={{aPost.Key}}</link>
     <description>{{aPost.Scan}}</description>
   </item>
   {% endfor %}

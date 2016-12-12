@@ -36,12 +36,18 @@ from google.appengine.ext import ndb
 
 import xml.etree.ElementTree
 
+DATA_SOURCE = 'http://www.canlii.org/en/on/onca/rss_new.xml'
+
 JINJA_ENVIRONMENT = jinja2.Environment(
                                        loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
                                        extensions=['jinja2.ext.autoescape'],
                                        autoescape=True
-
                                        )
+development = True
+if development:
+    BASE_URL = 'http://localhost:8080'
+else:
+    BASE_URL = 'https://legalhackerarticlebot.appspot.com'
 
 def getUser():
     user = users.get_current_user()
@@ -148,6 +154,7 @@ class createTag(webapp2.RequestHandler):
 class RSSHandler(webapp2.RequestHandler):
     def get(self):
         data = {}
+        data['base_url'] = BASE_URL
         template = JINJA_ENVIRONMENT.get_template('rss.template')
         q1 = Article.query()
         q1 = q1.order(-Article.createDate)
@@ -216,7 +223,7 @@ import xmltodict
 
 class GrabData(webapp2.RequestHandler):
     def get(self):
-        file = urlopen('http://www.canlii.org/en/on/onca/rss_new.xml')
+        file = urlopen(DATA_SOURCE)
         data = file.read()
         file.close()
         data = xmltodict.parse(data)
@@ -253,14 +260,14 @@ class CreateTag(webapp2.RequestHandler):
 
 class MainHandler(webapp2.RequestHandler):
     def get(self):
-        self.response.out.write('Go to https://legalhackerarticlebot.appspot.com/FindYourRSS to get your custom RSS Feed')
+        self.response.out.write('Go to ' + BASE_URL + '/FindYourRSS to get your custom RSS Feed')
 
 class FindYourRSS(webapp2.RequestHandler):
     def get(self):
         user = getUser()
         if user:
             aUser = User.get_or_insert(user.user_id())
-            self.response.out.write('https://legalhackerarticlebot.appspot.com/YourRSS?Key='+aUser.key.urlsafe())
+            self.response.out.write(BASE_URL + '/YourRSS?Key='+aUser.key.urlsafe())
         else:
             self.redirect(users.create_login_url('/FindYourRSS'))
 
@@ -271,6 +278,7 @@ class YourRSS(webapp2.RequestHandler):
         aUser = aKey.get()
         if aUser:
             data = {}
+            data['base_url'] = BASE_URL
             template = JINJA_ENVIRONMENT.get_template('rss.template')
             q1 = Article.query()
             q1 = q1.order(-Article.createDate)
@@ -283,6 +291,7 @@ class YourRSS(webapp2.RequestHandler):
             self.response.out.write(template.render(data))
         else:
             data = {}
+            data['base_url'] = BASE_URL
             template = JINJA_ENVIRONMENT.get_template('rss.template')
             q1 = Article.query()
             q1 = q1.order(-Article.createDate)
@@ -293,8 +302,6 @@ class YourRSS(webapp2.RequestHandler):
             data['Posts'] = articles;
             self.response.headers['Content-Type'] = 'application/rss+xml'
             self.response.out.write(template.render(data))
-
-
 
 class AddTextToArticle(webapp2.RequestHandler):
     def get(self):
