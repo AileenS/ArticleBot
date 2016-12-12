@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <title>Article Search</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+    </head>
+    <body>
+      {% for aPost in Posts %}
+
+<div class="container">
+  <div class="col-md-6">
+    <a href="{{aPost.Link}}">{{aPost.Title}}</a>
+  </div>
+  <form  id="{{aPost.Key}}">
+  <div class="col-md-3">
+    <input type="hidden" name="Key" value="{{aPost.Key}}">
+    <select name="Tag">
+      <option value="{{aPost.Scan}}">{{aPost.Scan}}</option>
+      {% for aFilter in Filter %}
+      <option value="{{aFilter.code}}">{{aFilter.Name}}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3"><input type="submit"></form></div>
+  <br><br>
+
+
+
+
+</div>
+      <br>
+
+        {% endfor %}
+
+
+        <script>
+
+        $( "form" ).submit(function( event ) {
+          event.preventDefault();
+          //var $inputs = $('#aPost.Key :input');
+
+          // not sure if you wanted this, but I thought I'd add it.
+          // get an associative array of just the values.
+
+
+          var a1 = event.target[0].value;
+
+          var arrayMaxLength = event.target[1].length
+
+          var a2
+
+          for (var index = 0; index<arrayMaxLength; index++){
+            a2 = event.target[1][index];
+
+            if (a2.selected==true){
+              a2 = a2.text
+              break;
+            }
+          }
+          //var v1 = $( "input:first" ).val()
+          //var v2 = $( "select:first" ).val()
+
+          $.ajax({
+              type: 'POST',
+              url: "/addTag",
+              data: {
+                  Key:a1,
+                  Tag:a2,
+              },
+          }).done(function(data) {
+
+          })
+
+        });
+
+
+        </script>
+
+{% endautoescape %}
