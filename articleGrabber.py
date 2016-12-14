@@ -18,14 +18,14 @@ from HTMLParser import HTMLParser
 
 def getArticle(url):
     soup = bs(urlopen(url))
-    theArticle = soup.find("div", { "class" : "WordSection1" })
-    fullText = ""
+    the_article = soup.find("div", {"class": "WordSection1"})
+    full_text = ""
     h = HTMLParser()
-    for node in theArticle.findAll('p'):
-        fullText = fullText+ ''.join(node.findAll(text=True))+' '
-    fullText = h.unescape(fullText)
-    fullText = re.sub('\[(.*?)\]', '', fullText)
-    return fullText
+    for node in the_article.findAll('p'):
+        full_text = full_text + ''.join(node.findAll(text=True)) + ' '
+    full_text = h.unescape(full_text)
+    full_text = re.sub('\[(.*?)\]', '', full_text)
+    return full_text
 '''
 def articleGrabber(url):
     soup = bs(urlopen(url))
