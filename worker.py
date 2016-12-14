@@ -14,17 +14,17 @@
 
 # [START all]
 
-from google.appengine.api import taskqueue
-from google.appengine.ext import ndb
-import webapp2
-import logging
-import spamSorter
-import articleGrabber
 import datetime
 
+import webapp2
+from google.appengine.api import taskqueue
+from google.appengine.ext import ndb
+
+import articleGrabber
+import spamSorter
 from database import ProxyTag
-from database import User
 from database import Tag
+from database import User
 
 COUNTER_KEY = 'default counter'
 
@@ -47,16 +47,22 @@ class UpdateCounterHandler(webapp2.RequestHandler):
 
         update_counter()
 
-class UpdateArticleHandler(webapp2.RequestHandler):
+
+class ArticleRequestHandler(webapp2.RequestHandler):
+    def get_requested_article(self):
+        requested_article_key = self.request.get('article')
+        article = ndb.Key(urlsafe=requested_article_key).get()
+        return article
+
+
+class UpdateArticleHandler(ArticleRequestHandler):
     def post(self):
-        articleKey = self.request.get('article')
-        aKey = ndb.Key(urlsafe=articleKey)
-        anArticle = aKey.get()
-        anArticle.article = articleGrabber.getArticle(anArticle.link);
-        anArticle.articleCaptured = True
-        anArticle.put()
+        article = self.get_requested_article()
+        article.article = articleGrabber.getArticle(article.link)
+        article.articleCaptured = True
+        article.put()
         q1 = User.query()
-        q1 = q1.filter(User.lastLoggedIn > datetime.datetime.now() - datetime.timedelta(hours=24));
+        q1 = q1.filter(User.lastLoggedIn > datetime.datetime.now() - datetime.timedelta(hours=24))
         for aUser in q1:
             q2 = Tag.query()
             q2 = q2.filter(Tag.user == aUser.user)
@@ -65,56 +71,60 @@ class UpdateArticleHandler(webapp2.RequestHandler):
                 task = taskqueue.Task(
                     url='/deployFilter',
                     target='worker',
-                    params={'article': anArticle.key.urlsafe(), 'tag': aTag.key.urlsafe(), 'user': aUser.user})
+                    params={'article': article.key.urlsafe(), 'tag': aTag.key.urlsafe(), 'user': aUser.user})
                 rpc = queue.add_async(task)
                 # Wait for the rpc to complete and return the queued task.
+                # TODO determine if next line is necessary, or if the assignment should be removed
                 task = rpc.get_result()
 
 
-class DeployFilter(webapp2.RequestHandler):
+class DeployFilter(ArticleRequestHandler):
     def post(self):
-        articleKey = self.request.get('article')
-        aKey = ndb.Key(urlsafe=articleKey)
-        anArticle = aKey.get()
+        article = self.get_requested_article()
+        tag = self._get_requested_tag()
+        user = self.request.get('user')
+        proxy = self._get_requested_proxy(article, tag, user)
+        if proxy is None:
+            the_value = spamSorter._test_value(article.article, tag.scanKey, user)
+            proxy = ProxyTag(tag=tag.key, article=article.key, user=user, score=the_value, computerGenerate=True)
+            proxy.put()
+
+    def _get_requested_tag(self):
         tag = self.request.get('tag')
         tag = ndb.Key(urlsafe=tag)
         tag = tag.get()
-        user = self.request.get('user')
-        q1 = ProxyTag.query()
-        q1 = q1.filter(ProxyTag.tag == tag.key);
-        q1 = q1.filter(ProxyTag.article == anArticle.key)
-        q1 = q1.filter(ProxyTag.user == user)
-        aProxy = q1.get()
-        if aProxy == None:
-            theValue = spamSorter._test_value(anArticle.article,tag.scanKey,user)
-            aProxy = ProxyTag(tag=tag.key,article=anArticle.key,user=user,score=theValue,computerGenerate=True);
-            aProxy.put()
+        return tag
 
-class AddToFilter(webapp2.RequestHandler):
-    def post(self):
-        articleKey = self.request.get('article')
-        aKey = ndb.Key(urlsafe=articleKey)
-        anArticle = aKey.get()
+    @staticmethod
+    def _get_requested_proxy(article, tag, user):
+        q1 = ProxyTag.query()
+        q1 = q1.filter(ProxyTag.tag == tag.key)
+        q1 = q1.filter(ProxyTag.article == article.key)
+        q1 = q1.filter(ProxyTag.user == user)
+        proxy = q1.get()
+        return proxy
+
+
+class FilterModificationHandler(ArticleRequestHandler):
+    def modify_filter(self, is_removal):
+        article = self.get_requested_article()
         tag = self.request.get('tag')
         user = self.request.get('user')
-        if anArticle.articleCaptured == False:
-            anArticle.article = articleGrabber.getArticle(anArticle.link);
-            anArticle.articleCaptured = True
-            anArticle.put()
-        spamSorter._update_text(anArticle.article,tag,user)
+        if not article.articleCaptured:
+            article.article = articleGrabber.getArticle(article.link)
+            article.articleCaptured = True
+            article.put()
+        spamSorter._update_text(article.article, tag, user, is_removal)
 
-class RemoveFromFilter(webapp2.RequestHandler):
+
+class AddToFilter(FilterModificationHandler):
+    def post(self):
+        self.modify_filter(is_removal=False)
+
+
+class RemoveFromFilter(FilterModificationHandler):
         def post(self):
-            articleKey = self.request.get('article')
-            aKey = ndb.Key(urlsafe=articleKey)
-            anArticle = aKey.get()
-            tag = self.request.get('tag')
-            user = self.request.get('user')
-            if anArticle.articleCaptured == False:
-                anArticle.article = articleGrabber.getArticle(anArticle.link);
-                anArticle.articleCaptured = True
-                anArticle.put()
-            spamSorter._update_text(anArticle.article,tag,user,True)
+            self.modify_filter(is_removal=True)
 
 
 app = webapp2.WSGIApplication([
