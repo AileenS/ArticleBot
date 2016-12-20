@@ -36,6 +36,8 @@ from google.appengine.ext import ndb
 
 import xml.etree.ElementTree
 
+DEVELOPMENT = True
+BASE_URL = 'http://localhost:8080' if DEVELOPMENT else 'https://legalhackerarticlebot.appspot.com'
 DATA_SOURCE = 'http://www.canlii.org/en/on/onca/rss_new.xml'
 
 JINJA_ENVIRONMENT = jinja2.Environment(
@@ -43,12 +45,6 @@ JINJA_ENVIRONMENT = jinja2.Environment(
                                        extensions=['jinja2.ext.autoescape'],
                                        autoescape=True
                                        )
-development = True
-if development:
-    BASE_URL = 'http://localhost:8080'
-else:
-    BASE_URL = 'https://legalhackerarticlebot.appspot.com'
-
 def getUser():
     user = users.get_current_user()
     if user:
